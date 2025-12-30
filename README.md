@@ -182,3 +182,8 @@ MIT © [serayd61](https://github.com/serayd61)
 - [OpenZeppelin Escrow](https://docs.openzeppelin.com/contracts/4.x/api/utils#Escrow)
 - [Stacks.js](https://github.com/hirosystems/stacks.js)
 
+
+---
+## December 2024 Update
+- ✅ Enhanced security
+- ✅ Multi-party escrow
