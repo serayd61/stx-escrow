@@ -38,6 +38,16 @@
 ;; Dispute filing fee: 1 STX
 (define-constant DISPUTE_FEE u1000000)
 
+;; Event types
+(define-constant EVENT_DISPUTE_FILED "dispute-filed")
+(define-constant EVENT_RESPONSE_SUBMITTED "response-submitted")
+(define-constant EVENT_ARBITER_REGISTERED "arbiter-registered")
+(define-constant EVENT_VOTE_CAST "vote-cast")
+(define-constant EVENT_DISPUTE_FINALIZED "dispute-finalized")
+(define-constant EVENT_DISPUTE_RESOLVED "dispute-resolved")
+(define-constant EVENT_ARBITER_DEACTIVATED "arbiter-deactivated")
+(define-constant EVENT_FEES_DISTRIBUTED "fees-distributed")
+
 ;; ============================================
 ;; Data Variables
 ;; ============================================
@@ -185,6 +195,20 @@
     (var-set fee-pool (+ (var-get fee-pool) DISPUTE_FEE))
     (var-set dispute-counter dispute-id)
     
+    ;; Emit event
+    (print {
+      event: EVENT_DISPUTE_FILED,
+      dispute-id: dispute-id,
+      escrow-id: escrow-id,
+      filed-by: filer,
+      buyer: filer,
+      seller: CONTRACT_OWNER,
+      reason: reason,
+      evidence-uri: evidence-uri,
+      filed-at: stacks-block-height,
+      fee: DISPUTE_FEE
+    })
+    
     (ok { dispute-id: dispute-id, escrow-id: escrow-id })
   )
 )
@@ -217,6 +241,16 @@
       (merge dispute { state: DISPUTE_VOTING })
     )
     
+    ;; Emit event
+    (print {
+      event: EVENT_RESPONSE_SUBMITTED,
+      dispute-id: dispute-id,
+      responder: responder,
+      response: response,
+      evidence-uri: evidence-uri,
+      responded-at: stacks-block-height
+    })
+    
     (ok dispute-id)
   )
 )
@@ -245,6 +279,16 @@
     )
     
     (var-set total-arbiters (+ (var-get total-arbiters) u1))
+    
+    ;; Emit event
+    (print {
+      event: EVENT_ARBITER_REGISTERED,
+      arbiter: arbiter,
+      stake: stake,
+      registered-at: stacks-block-height,
+      reputation: u100
+    })
+    
     (ok arbiter)
   )
 )
@@ -296,6 +340,16 @@
       })
     )
     
+    ;; Emit event
+    (print {
+      event: EVENT_VOTE_CAST,
+      dispute-id: dispute-id,
+      arbiter: arbiter,
+      vote-for-buyer: vote-for-buyer,
+      reasoning: reasoning,
+      voted-at: stacks-block-height
+    })
+    
     (ok { dispute-id: dispute-id, vote-for-buyer: vote-for-buyer })
   )
 )
@@ -327,7 +381,17 @@
         })
       )
       
-      ;; In production, would trigger escrow release/refund here
+      ;; Emit event
+      (print {
+        event: EVENT_DISPUTE_FINALIZED,
+        dispute-id: dispute-id,
+        votes-for-buyer: (get votes-for-buyer dispute),
+        votes-for-seller: (get votes-for-seller dispute),
+        total-votes: total-votes,
+        buyer-wins: buyer-wins,
+        resolution: new-state,
+        resolved-at: stacks-block-height
+      })
       
       (ok { dispute-id: dispute-id, buyer-wins: buyer-wins })
     )
@@ -347,6 +411,14 @@
     (try! (as-contract (stx-transfer? amount tx-sender arbiter)))
     (var-set fee-pool (- (var-get fee-pool) amount))
     
+    ;; Emit event
+    (print {
+      event: EVENT_FEES_DISTRIBUTED,
+      arbiter: arbiter,
+      amount: amount,
+      remaining-fees: (var-get fee-pool)
+    })
+    
     (ok amount)
   )
 )
@@ -364,7 +436,16 @@
     )
     
     (var-set total-arbiters (- (var-get total-arbiters) u1))
+    
+    ;; Emit event
+    (print {
+      event: EVENT_ARBITER_DEACTIVATED,
+      arbiter: arbiter,
+      deactivated-by: tx-sender,
+      cases-handled: (get cases-handled arbiter-data),
+      reputation: (get reputation arbiter-data)
+    })
+    
     (ok arbiter)
   )
 )
-
